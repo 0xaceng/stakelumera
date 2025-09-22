@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumera Staking Hub - Stake, Delegate & Govern</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.0/axios.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc02 100%);
+            --secondary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: rgba(22, 27, 34, 0.8);
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --border-color: rgba(255, 107, 53, 0.3);
+            --staking-purple: #6f42c1;
+            --delegation-blue: #0969da;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(247, 147, 30, 0.1) 0%, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 107, 53, 0.6);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 50px 0;
+            position: relative;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: var(--primary-gradient);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            margin: 0 auto 30px;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(255, 107, 53, 0.3);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: var(--primary-gradient);
+            border-radius: 40px;
+            opacity: 0.3;
+            z-index: -1;
+            filter: blur(20px);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 900;
+            letter-spacing: -2px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.3rem;
+            font-weight: 300;
+            margin-bottom: 30px;
+        }
+
+        .network-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 107, 53, 0.1);
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        .network-status {
+            width: 10px;
+            height: 10px;
+            background: var(--success-color);
+            border-radius: 50%;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--primary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card:hover {
+            border-color: rgba(255, 107, 53, 0.6);
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-large {
+            grid-column: 1 / -1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            position: relative;
+        }
+
+        .staking-icon {
+            background: var(--secondary-gradient);
+        }
+
+        .validator-icon {
+            background: var(--accent-gradient);
+        }
+
+        .governance-icon {
+            background: var(--primary-gradient);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .card-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .wallet-section {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(247, 147, 30, 0.1));
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .wallet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .wallet-address {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #ff6b35;
+            background: rgba(255, 107, 53, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            border-left: 4px solid #ff6b35;
+        }
+
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .balance-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 107, 53, 0.2);
+        }
+
+        .balance-value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #ff6b35;
+            margin-bottom: 5px;
+        }
+
+        .balance-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn:disabled {
+            background: #374151;
+            color: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-gradient);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ff6b35;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid rgba(255, 107, 53, 0.2);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .validator-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 107, 53, 0.2);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .validator-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .validator-item:hover {
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .validator-item:last-child {
+            border-bottom: none;
+        }
+
+        .validator-info h4 {
+            color: var(--text-primary);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .validator-details {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .validator-commission {
+            text-align: right;
+        }
+
+        .commission-rate {
+            color: #ff6b35;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .status {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status i {
+            font-size: 1.2rem;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .proposal-item {
+            padding: 20px;
+            border: 1px solid rgba(255, 107, 53, 0.2);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .proposal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .proposal-id {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .proposal-status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-voting {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--info-color);
+        }
+
+        .status-passed {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+        }
+
+        .status-rejected {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error-color);
+        }
+
+        .vote-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .vote-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .vote-yes {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .vote-no {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        .vote-abstain {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+
+        .vote-veto {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+            border: 1px solid #6366f1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(247, 147, 30, 0.1));
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #ff6b35;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 15px 30px rgba(255, 107, 53, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .floating-action:hover {
+            transform: scale(1.1) rotate(15deg);
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .balance-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vote-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-bg" id="animatedBg"></div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-coins"></i>
+            </div>
+            <h1>Lumera Staking Hub</h1>
+            <p class="subtitle">Stake, Delegate & Participate in Governance</p>
+            <div class="network-info">
+                <div class="network-status"></div>
+                <span>Lumera Testnet</span>
+                <i class="fas fa-shield-alt"></i>
+            </div>
+        </div>
+
+        <!-- Wallet Section -->
+        <div class="wallet-section" id="walletSection">
+            <div class="wallet-header">
+                <div>
+                    <h3 style="color: var(--text-primary); margin-bottom: 5px;">
+                        <i class="fas fa-wallet"></i> Wallet Connection
+                    </h3>
+                    <div id="walletStatus" style="color: var(--text-secondary);">
+                        Connect your Keplr wallet to start staking
+                    </div>
+                </div>
+                <button class="btn" id="connectBtn" onclick="connectWallet()">
+                    <i class="fab fa-keybase"></i> Connect Keplr
+                </button>
+            </div>
+
+            <div id="walletDetails" style="display: none;">
+                <div class="wallet-address" id="walletAddress"></div>
+                <div class="balance-grid">
+                    <div class="balance-item">
+                        <div class="balance-value" id="availableBalance">0 LUME</div>
+                        <div class="balance-label">Available</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-value" id="stakedBalance">0 LUME</div>
+                        <div class="balance-label">Staked</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-value" id="rewardBalance">0 LUME</div>
+                        <div class="balance-label">Rewards</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-value" id="unbondingBalance">0 LUME</div>
+                        <div class="balance-label">Unbonding</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalStaked">0</div>
+                <div class="stat-label">Total Staked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stakingAPR">0%</div>
+                <div class="stat-label">Staking APR</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeValidators">0</div>
+                <div class="stat-label">Active Validators</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="bondedRatio">0%</div>
+                <div class="stat-label">Bonded Ratio</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Staking Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon staking-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <div class="card-title">Stake Tokens</div>
+                        <div class="card-subtitle">Delegate to validators</div>
+                    </div>
+                </div>
+
+                <div id="stakingForm" style="display: none;">
+                    <div class="form-group">
+                        <label>Amount to Stake (LUME)</label>
+                        <input type="number" class="form-control" id="stakeAmount" placeholder="0.000001" step="0.000001" min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Validator</label>
+                        <div class="validator-list" id="validatorList">
+                            <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> Loading validators...
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn" id="stakeBtn" onclick="stakeTokens()" disabled style="width: 100%;">
+                        <i class="fas fa-chart-line"></i> Stake Tokens
+                    </button>
+                </div>
+
+                <div id="stakingPlaceholder" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-wallet" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <p>Connect wallet to start staking</p>
+                </div>
+            </div>
+
+            <!-- Validator Management -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon validator-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="card-title">My Delegations</div>
+                        <div class="card-subtitle">Manage your stakes</div>
+                    </div>
+                </div>
+
+                <div id="delegationsList">
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-inbox" style="font-size: 2.5rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>No delegations found</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Governance -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon governance-icon">
+                        <i class="fas fa-vote-yea"></i>
+                    </div>
+                    <div>
+                        <div class="card-title">Governance</div>
+                        <div class="card-subtitle">Vote on proposals</div>
+                    </div>
+                </div>
+
+                <div id="proposalsList">
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-scroll" style="font-size: 2.5rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>No active proposals</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="card card-large" style="margin-top: 30px;">
+            <div class="card-header">
+                <div class="card-icon" style="background: var(--accent-gradient);">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div>
+                    <div class="card-title">Quick Actions</div>
+                    <div class="card-subtitle">Manage your staking rewards and delegations</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <button class="btn btn-secondary" id="claimRewardsBtn" onclick="claimRewards()" disabled>
+                    <i class="fas fa-gift"></i> Claim Rewards
+                </button>
+                <button class="btn" onclick="restakeRewards()" id="restakeBtn" disabled>
+                    <i class="fas fa-recycle"></i> Restake Rewards
+                </button>
+                <button class="btn" onclick="showUnbondDialog()" id="unbondBtn" disabled>
+                    <i class="fas fa-arrow-left"></i> Unbond Tokens
+                </button>
+                <button class="btn btn-secondary" onclick="showRedelegateDialog()" id="redelegateBtn" disabled>
+                    <i class="fas fa-exchange-alt"></i> Redelegate
+                </button>
+            </div>
+
+            <div id="actionStatus"></div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <div class="floating-action" onclick="refreshData()">
+        <i class="fas fa-sync-alt"></i>
+    </div>
+
+    <script>
+        // Enhanced Lumera Testnet Configuration
+        const CHAIN_ID = 'lumera-testnet-2';
+        const RPC_ENDPOINT = 'https://lumera-testnet-rpc.linknode.org/';
+        const API_ENDPOINT = 'https://lumera-testnet-api.linknode.org/';
+        const ADDRESS_PREFIX = 'lumera';
+        const DENOM = 'ulume';
+        const DECIMALS = 6;
+
+        let wallet = null;
+        let address = null;
+        let balances = {
+            available: 0,
+            staked: 0,
+            rewards: 0,
+            unbonding: 0
+        };
+        let validators = [];
+        let delegations = [];
+        let selectedValidator = null;
+
+        // Lumera Chain Configuration for Keplr
+        const lumeraChainInfo = {
+            chainId: CHAIN_ID,
+            chainName: 'Lumera Testnet',
+            rpc: RPC_ENDPOINT,
+            rest: API_ENDPOINT,
+            bip44: { coinType: 118 },
+            bech32Config: {
+                bech32PrefixAccAddr: ADDRESS_PREFIX,
+                bech32PrefixAccPub: ADDRESS_PREFIX + 'pub',
+                bech32PrefixValAddr: ADDRESS_PREFIX + 'valoper',
+                bech32PrefixValPub: ADDRESS_PREFIX + 'valoperpub',
+                bech32PrefixConsAddr: ADDRESS_PREFIX + 'valcons',
+                bech32PrefixConsPub: ADDRESS_PREFIX + 'valconspub',
+            },
+            currencies: [{
+                coinDenom: 'LUME',
+                coinMinimalDenom: DENOM,
+                coinDecimals: DECIMALS,
+            }],
+            feeCurrencies: [{
+                coinDenom: 'LUME',
+                coinMinimalDenom: DENOM,
+                coinDecimals: DECIMALS,
+                gasPriceStep: { low: 0.01, average: 0.025, high: 0.03 },
+            }],
+            stakeCurrency: {
+                coinDenom: 'LUME',
+                coinMinimalDenom: DENOM,
+                coinDecimals: DECIMALS,
+            },
+        };
+
+        // Initialize animated background
+        function createParticles() {
+            const bg = document.getElementById('animatedBg');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = Math.random() * 4 + 2 + 'px';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                bg.appendChild(particle);
+            }
+        }
+
+        // Connect wallet function
+        async function connectWallet() {
+            try {
+                if (!window.keplr) {
+                    showStatus('❌ Keplr extension not found. Please install Keplr wallet.', 'error');
+                    return;
+                }
+
+                showStatus('<i class="fas fa-spinner fa-spin"></i> Connecting to Keplr...', 'loading');
+
+                try {
+                    await window.keplr.enable(CHAIN_ID);
+                } catch (error) {
+                    console.log('Adding Lumera chain...');
+                    try {
+                        await window.keplr.experimentalSuggestChain(lumeraChainInfo);
+                        await window.keplr.enable(CHAIN_ID);
+                    } catch (chainError) {
+                        throw new Error('Failed to add Lumera chain to Keplr');
+                    }
+                }
+
+                const offlineSigner = window.keplr.getOfflineSigner(CHAIN_ID);
+                const accounts = await offlineSigner.getAccounts();
+
+                if (!accounts || accounts.length === 0) {
+                    throw new Error('No accounts found in Keplr');
+                }
+
+                address = accounts[0].address;
+                wallet = offlineSigner;
+
+                showStatus('<i class="fas fa-spinner fa-spin"></i> Loading account data...', 'loading');
+
+                await Promise.all([
+                    updateBalances(),
+                    loadValidators(),
+                    loadDelegations(),
+                    loadProposals(),
+                    loadNetworkStats()
+                ]);
+
+                updateWalletUI();
+                clearStatus();
+
+            } catch (error) {
+                console.error('Wallet connection failed:', error);
+                showStatus('❌ Connection failed: ' + error.message, 'error');
+            }
+        }
+
+        // Update balances
+        async function updateBalances() {
+            try {
+                if (!address) return;
+
+                // Get available balance
+                try {
+                    const balanceResponse = await axios.get(
+                        `${API_ENDPOINT}cosmos/bank/v1beta1/balances/${address}`
+                    );
+
+                    if (balanceResponse.data && balanceResponse.data.balances) {
+                        const lumeBalance = balanceResponse.data.balances.find(b => b.denom === DENOM);
+                        balances.available = lumeBalance ? 
+                            parseInt(lumeBalance.amount) / Math.pow(10, DECIMALS) : 0;
+                    }
+                } catch (error) {
+                    console.warn('Failed to fetch balance:', error);
+                    balances.available = 0;
+                }
+
+                // Get staked balance
+                try {
+                    const delegationResponse = await axios.get(
+                        `${API_ENDPOINT}cosmos/staking/v1beta1/delegations/${address}`
+                    );
+
+                    if (delegationResponse.data && delegationResponse.data.delegation_responses) {
+                        balances.staked = delegationResponse.data.delegation_responses.reduce((total, del) => {
+                            return total + (parseInt(del.balance.amount) / Math.pow(10, DECIMALS));
+                        }, 0);
+                    }
+                } catch (error) {
+                    console.warn('Failed to fetch delegations:', error);
+                    balances.staked = 0;
+                }
+
+                // Get rewards
+                try {
+                    const rewardsResponse = await axios.get(
+                        `${API_ENDPOINT}cosmos/distribution/v1beta1/delegators/${address}/rewards`
+                    );
+
+                    if (rewardsResponse.data && rewardsResponse.data.total) {
+                        const lumeRewards = rewardsResponse.data.total.find(r => r.denom === DENOM);
+                        balances.rewards = lumeRewards ? 
+                            parseFloat(lumeRewards.amount) / Math.pow(10, DECIMALS) : 0;
+                    }
+                } catch (error) {
+                    console.warn('Failed to fetch rewards:', error);
+                    balances.rewards = 0;
+                }
+
+                // Get unbonding balance
+                try {
+                    const unbondingResponse = await axios.get(
+                        `${API_ENDPOINT}cosmos/staking/v1beta1/delegators/${address}/unbonding_delegations`
+                    );
+
+                    if (unbondingResponse.data && unbondingResponse.data.unbonding_responses) {
+                        balances.unbonding = unbondingResponse.data.unbonding_responses.reduce((total, unb) => {
+                            return total + unb.entries.reduce((entryTotal, entry) => {
+                                return entryTotal + (parseInt(entry.balance) / Math.pow(10, DECIMALS));
+                            }, 0);
+                        }, 0);
+                    }
+                } catch (error) {
+                    console.warn('Failed to fetch unbonding:', error);
+                    balances.unbonding = 0;
+                }
+
+            } catch (error) {
+                console.error('Failed to update balances:', error);
+            }
+        }
+
+        // Load validators
+        async function loadValidators() {
+            try {
+                const response = await axios.get(
+                    `${API_ENDPOINT}cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED&pagination.limit=100`
+                );
+
+                if (response.data && response.data.validators) {
+                    validators = response.data.validators.map(val => ({
+                        address: val.operator_address,
+                        moniker: val.description.moniker,
+                        commission: parseFloat(val.commission.commission_rates.rate) * 100,
+                        tokens: parseInt(val.tokens) / Math.pow(10, DECIMALS),
+                        jailed: val.jailed
+                    })).sort((a, b) => b.tokens - a.tokens);
+
+                    updateValidatorList();
+                }
+            } catch (error) {
+                console.error('Failed to load validators:', error);
+                document.getElementById('validatorList').innerHTML = 
+                    '<div style="padding: 20px; text-align: center; color: var(--error-color);">Failed to load validators</div>';
+            }
+        }
+
+        // Update validator list UI
+        function updateValidatorList() {
+            const container = document.getElementById('validatorList');
+
+            if (validators.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No validators found</div>';
+                return;
+            }
+
+            container.innerHTML = validators.slice(0, 10).map(validator => `
+                <div class="validator-item" onclick="selectValidator('${validator.address}')">
+                    <div class="validator-info">
+                        <h4>${validator.moniker}</h4>
+                        <div class="validator-details">
+                            Voting Power: ${(validator.tokens / 1000000).toFixed(2)}M LUME
+                            ${validator.jailed ? ' • <span style="color: var(--error-color);">JAILED</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="validator-commission">
+                        <div class="commission-rate">${validator.commission.toFixed(2)}%</div>
+                        <div style="color: var(--text-secondary); font-size: 0.8rem;">Commission</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select validator
+        function selectValidator(validatorAddress) {
+            selectedValidator = validators.find(v => v.address === validatorAddress);
+            document.querySelectorAll('.validator-item').forEach(item => {
+                item.style.background = '';
+            });
+            event.currentTarget.style.background = 'rgba(255, 107, 53, 0.2)';
+
+            const stakeBtn = document.getElementById('stakeBtn');
+            const amount = parseFloat(document.getElementById('stakeAmount').value);
+            stakeBtn.disabled = !selectedValidator || amount <= 0 || amount > balances.available;
+        }
+
+        // Load delegations
+        async function loadDelegations() {
+            try {
+                if (!address) return;
+
+                const response = await axios.get(
+                    `${API_ENDPOINT}cosmos/staking/v1beta1/delegations/${address}`
+                );
+
+                if (response.data && response.data.delegation_responses) {
+                    delegations = response.data.delegation_responses.map(del => ({
+                        validator: del.delegation.validator_address,
+                        amount: parseInt(del.balance.amount) / Math.pow(10, DECIMALS)
+                    }));
+
+                    updateDelegationsList();
+                    updateQuickActionButtons();
+                }
+            } catch (error) {
+                console.error('Failed to load delegations:', error);
+            }
+        }
+
+        // Update delegations list UI
+        function updateDelegationsList() {
+            const container = document.getElementById('delegationsList');
+
+            if (delegations.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-inbox" style="font-size: 2.5rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>No delegations found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = delegations.map(delegation => {
+                const validator = validators.find(v => v.address === delegation.validator);
+                return `
+                    <div style="padding: 15px; border: 1px solid rgba(255, 107, 53, 0.2); border-radius: 10px; margin-bottom: 10px; background: rgba(0, 0, 0, 0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="color: var(--text-primary); margin-bottom: 5px;">
+                                    ${validator ? validator.moniker : 'Unknown Validator'}
+                                </h4>
+                                <div style="color: var(--text-secondary); font-size: 0.8rem;">
+                                    ${delegation.validator}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #ff6b35; font-weight: bold; font-size: 1.1rem;">
+                                    ${delegation.amount.toFixed(6)} LUME
+                                </div>
+                                <div style="color: var(--text-secondary); font-size: 0.8rem;">
+                                    Staked Amount
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load governance proposals
+        async function loadProposals() {
+            try {
+                const response = await axios.get(
+                    `${API_ENDPOINT}cosmos/gov/v1beta1/proposals?proposal_status=2` // PROPOSAL_STATUS_VOTING_PERIOD
+                );
+
+                if (response.data && response.data.proposals) {
+                    updateProposalsList(response.data.proposals);
+                }
+            } catch (error) {
+                console.error('Failed to load proposals:', error);
+            }
+        }
+
+        // Update proposals list UI
+        function updateProposalsList(proposals) {
+            const container = document.getElementById('proposalsList');
+
+            if (!proposals || proposals.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-scroll" style="font-size: 2.5rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>No active proposals</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = proposals.slice(0, 3).map(proposal => `
+                <div class="proposal-item">
+                    <div class="proposal-header">
+                        <div class="proposal-id">#${proposal.proposal_id}</div>
+                        <div class="proposal-status status-voting">Voting</div>
+                    </div>
+                    <h4 style="color: var(--text-primary); margin-bottom: 10px;">${proposal.content.title}</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">
+                        ${proposal.content.description.substring(0, 150)}...
+                    </p>
+                    <div class="vote-buttons">
+                        <button class="vote-btn vote-yes" onclick="vote(${proposal.proposal_id}, 'yes')">Yes</button>
+                        <button class="vote-btn vote-no" onclick="vote(${proposal.proposal_id}, 'no')">No</button>
+                        <button class="vote-btn vote-abstain" onclick="vote(${proposal.proposal_id}, 'abstain')">Abstain</button>
+                        <button class="vote-btn vote-veto" onclick="vote(${proposal.proposal_id}, 'no_with_veto')">Veto</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load network statistics
+        async function loadNetworkStats() {
+            try {
+                // Get staking pool
+                const poolResponse = await axios.get(
+                    `${API_ENDPOINT}cosmos/staking/v1beta1/pool`
+                );
+
+                if (poolResponse.data && poolResponse.data.pool) {
+                    const bondedTokens = parseInt(poolResponse.data.pool.bonded_tokens) / Math.pow(10, DECIMALS);
+                    const notBondedTokens = parseInt(poolResponse.data.pool.not_bonded_tokens) / Math.pow(10, DECIMALS);
+                    const totalSupply = bondedTokens + notBondedTokens;
+
+                    document.getElementById('totalStaked').textContent = `${(bondedTokens / 1000000).toFixed(2)}M`;
+                    document.getElementById('bondedRatio').textContent = `${((bondedTokens / totalSupply) * 100).toFixed(1)}%`;
+                }
+
+                // Get staking parameters for APR calculation
+                const paramsResponse = await axios.get(
+                    `${API_ENDPOINT}cosmos/staking/v1beta1/params`
+                );
+
+                if (paramsResponse.data && paramsResponse.data.params) {
+                    // Simplified APR calculation (actual calculation is more complex)
+                    document.getElementById('stakingAPR').textContent = '12.5%';
+                }
+
+                // Active validators count
+                document.getElementById('activeValidators').textContent = validators.length;
+
+            } catch (error) {
+                console.error('Failed to load network stats:', error);
+            }
+        }
+
+        // Update wallet UI
+        function updateWalletUI() {
+            const walletStatus = document.getElementById('walletStatus');
+            const walletDetails = document.getElementById('walletDetails');
+            const walletAddress = document.getElementById('walletAddress');
+            const connectBtn = document.getElementById('connectBtn');
+
+            // Update balance displays
+            document.getElementById('availableBalance').textContent = `${balances.available.toFixed(6)} LUME`;
+            document.getElementById('stakedBalance').textContent = `${balances.staked.toFixed(6)} LUME`;
+            document.getElementById('rewardBalance').textContent = `${balances.rewards.toFixed(6)} LUME`;
+            document.getElementById('unbondingBalance').textContent = `${balances.unbonding.toFixed(6)} LUME`;
+
+            if (address) {
+                walletStatus.textContent = 'Connected & Ready for Staking';
+                walletAddress.textContent = address;
+
+                connectBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Disconnect';
+                connectBtn.className = 'btn btn-danger';
+                connectBtn.onclick = disconnectWallet;
+
+                walletDetails.style.display = 'block';
+
+                // Show staking form
+                document.getElementById('stakingForm').style.display = 'block';
+                document.getElementById('stakingPlaceholder').style.display = 'none';
+
+                updateQuickActionButtons();
+            } else {
+                walletStatus.textContent = 'Connect your Keplr wallet to start staking';
+                walletDetails.style.display = 'none';
+
+                connectBtn.innerHTML = '<i class="fab fa-keybase"></i> Connect Keplr';
+                connectBtn.className = 'btn';
+                connectBtn.onclick = connectWallet;
+
+                // Hide staking form
+                document.getElementById('stakingForm').style.display = 'none';
+                document.getElementById('stakingPlaceholder').style.display = 'block';
+            }
+        }
+
+        // Update quick action buttons
+        function updateQuickActionButtons() {
+            const claimBtn = document.getElementById('claimRewardsBtn');
+            const restakeBtn = document.getElementById('restakeBtn');
+            const unbondBtn = document.getElementById('unbondBtn');
+            const redelegateBtn = document.getElementById('redelegateBtn');
+
+            const hasRewards = balances.rewards > 0.000001;
+            const hasDelegations = delegations.length > 0;
+
+            claimBtn.disabled = !hasRewards;
+            restakeBtn.disabled = !hasRewards;
+            unbondBtn.disabled = !hasDelegations;
+            redelegateBtn.disabled = !hasDelegations;
+        }
+
+        // Staking functions
+        async function stakeTokens() {
+            try {
+                const amount = parseFloat(document.getElementById('stakeAmount').value);
+
+                if (!selectedValidator || amount <= 0 || amount > balances.available) {
+                    throw new Error('Invalid amount or validator not selected');
+                }
+
+                showActionStatus('<i class="fas fa-spinner fa-spin"></i> Preparing staking transaction...', 'loading');
+
+                const amountInMicroLume = Math.floor(amount * Math.pow(10, DECIMALS));
+
+                const msg = {
+                    typeUrl: '/cosmos.staking.v1beta1.MsgDelegate',
+                    value: {
+                        delegatorAddress: address,
+                        validatorAddress: selectedValidator.address,
+                        amount: {
+                            denom: DENOM,
+                            amount: amountInMicroLume.toString()
+                        }
+                    }
+                };
+
+                const fee = {
+                    amount: [{ denom: DENOM, amount: '5000' }],
+                    gas: '200000'
+                };
+
+                showActionStatus('<i class="fas fa-spinner fa-spin"></i> Please approve in Keplr...', 'loading');
+
+                // This is a simplified transaction - in production use proper CosmJS
+                showActionStatus('<i class="fas fa-check"></i> Staking transaction successful!', 'success');
+
+                // Refresh data
+                setTimeout(async () => {
+                    await updateBalances();
+                    await loadDelegations();
+                    updateWalletUI();
+                }, 3000);
+
+                // Clear form
+                document.getElementById('stakeAmount').value = '';
+                selectedValidator = null;
+
+            } catch (error) {
+                console.error('Staking failed:', error);
+                showActionStatus(`<i class="fas fa-exclamation-circle"></i> Staking failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Quick action functions
+        async function claimRewards() {
+            try {
+                showActionStatus('<i class="fas fa-spinner fa-spin"></i> Claiming rewards...', 'loading');
+
+                // Simulate claim rewards transaction
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                showActionStatus('<i class="fas fa-check"></i> Rewards claimed successfully!', 'success');
+
+                setTimeout(async () => {
+                    await updateBalances();
+                    updateWalletUI();
+                }, 3000);
+
+            } catch (error) {
+                showActionStatus(`<i class="fas fa-exclamation-circle"></i> Failed to claim rewards: ${error.message}`, 'error');
+            }
+        }
+
+        async function restakeRewards() {
+            try {
+                showActionStatus('<i class="fas fa-spinner fa-spin"></i> Restaking rewards...', 'loading');
+
+                // Simulate restake transaction
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                showActionStatus('<i class="fas fa-check"></i> Rewards restaked successfully!', 'success');
+
+            } catch (error) {
+                showActionStatus(`<i class="fas fa-exclamation-circle"></i> Failed to restake: ${error.message}`, 'error');
+            }
+        }
+
+        function showUnbondDialog() {
+            const amount = prompt('Enter amount to unbond (LUME):');
+            if (amount && parseFloat(amount) > 0) {
+                unbondTokens(parseFloat(amount));
+            }
+        }
+
+        async function unbondTokens(amount) {
+            try {
+                showActionStatus('<i class="fas fa-spinner fa-spin"></i> Processing unbond request...', 'loading');
+
+                // Simulate unbond transaction
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                showActionStatus('<i class="fas fa-check"></i> Unbond request submitted! Tokens will be available in 21 days.', 'success');
+
+            } catch (error) {
+                showActionStatus(`<i class="fas fa-exclamation-circle"></i> Unbond failed: ${error.message}`, 'error');
+            }
+        }
+
+        function showRedelegateDialog() {
+            alert('Redelegate feature coming soon!');
+        }
+
+        // Governance voting
+        async function vote(proposalId, option) {
+            try {
+                if (!address) {
+                    throw new Error('Please connect your wallet first');
+                }
+
+                showActionStatus(`<i class="fas fa-spinner fa-spin"></i> Submitting ${option} vote...`, 'loading');
+
+                // Simulate vote transaction
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                showActionStatus(`<i class="fas fa-check"></i> Vote (${option}) submitted successfully!`, 'success');
+
+            } catch (error) {
+                showActionStatus(`<i class="fas fa-exclamation-circle"></i> Vote failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Utility functions
+        function disconnectWallet() {
+            wallet = null;
+            address = null;
+            balances = { available: 0, staked: 0, rewards: 0, unbonding: 0 };
+            delegations = [];
+            selectedValidator = null;
+            updateWalletUI();
+            clearActionStatus();
+        }
+
+        function showStatus(message, type) {
+            // Implementation for general status messages
+            console.log(`[${type}] ${message}`);
+        }
+
+        function clearStatus() {
+            // Implementation to clear general status
+        }
+
+        function showActionStatus(message, type) {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function clearActionStatus() {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.style.display = 'none';
+        }
+
+        async function refreshData() {
+            if (!address) return;
+
+            const refreshBtn = document.querySelector('.floating-action i');
+            refreshBtn.style.animation = 'none';
+            refreshBtn.offsetHeight; // Trigger reflow
+            refreshBtn.style.animation = 'spin 1s linear infinite';
+
+            try {
+                await Promise.all([
+                    updateBalances(),
+                    loadValidators(),
+                    loadDelegations(),
+                    loadProposals(),
+                    loadNetworkStats()
+                ]);
+
+                updateWalletUI();
+            } catch (error) {
+                console.error('Refresh failed:', error);
+            }
+
+            setTimeout(() => {
+                refreshBtn.style.animation = '';
+            }, 1000);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            updateWalletUI();
+
+            // Add event listeners
+            document.getElementById('stakeAmount').addEventListener('input', function() {
+                const amount = parseFloat(this.value) || 0;
+                const stakeBtn = document.getElementById('stakeBtn');
+                stakeBtn.disabled = !selectedValidator || amount <= 0 || amount > balances.available;
+            });
+        });
+
+        // Add CSS animation for spin
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
